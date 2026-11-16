@@ -1,0 +1,133 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  phone        String?
+  passwordHash String
+  role         String   @default("CUSTOMER") // CUSTOMER | ADMIN
+  createdAt    DateTime @default(now())
+  orders       Order[]
+}
+
+model Category {
+  id       String    @id @default(cuid())
+  slug     String    @unique
+  nameAr   String
+  nameEn   String
+  descAr   String
+  descEn   String
+  image    String
+  sort     Int       @default(0)
+  products Product[]
+}
+
+model Brand {
+  id        String    @id @default(cuid())
+  slug      String    @unique
+  name      String
+  taglineAr String
+  taglineEn String
+  products  Product[]
+}
+
+model Product {
+  id         String      @id @default(cuid())
+  slug       String      @unique
+  nameAr     String
+  nameEn     String
+  descAr     String
+  descEn     String
+  specsAr    String      @default("[]") // JSON [label, value][]
+  specsEn    String      @default("[]")
+  price      Int // EGP
+  compareAt  Int?
+  stock      Int         @default(0)
+  image      String
+  gallery    String      @default("[]") // JSON string[]
+  featured   Boolean     @default(false)
+  isNew      Boolean     @default(false)
+  active     Boolean     @default(true)
+  sold       Int         @default(0)
+  categoryId String
+  category   Category    @relation(fields: [categoryId], references: [id])
+  brandId    String
+  brand      Brand       @relation(fields: [brandId], references: [id])
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  orderItems OrderItem[]
+
+  @@index([categoryId])
+  @@index([brandId])
+}
+
+model Order {
+  id          String      @id @default(cuid())
+  number      String      @unique
+  userId      String?
+  user        User?       @relation(fields: [userId], references: [id])
+  name        String
+  phone       String
+  email       String?
+  governorate String
+  city        String
+  address     String
+  notes       String?
+  subtotal    Int
+  shipping    Int
+  discount    Int         @default(0)
+  total       Int
+  couponCode  String?
+  payment     String      @default("COD") // COD | CARD_ON_DELIVERY
+  status      String      @default("PENDING") // PENDING | CONFIRMED | SHIPPED | DELIVERED | CANCELLED
+  createdAt   DateTime    @default(now())
+  items       OrderItem[]
+}
+
+model OrderItem {
+  id        String  @id @default(cuid())
+  orderId   String
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  nameAr    String
+  nameEn    String
+  image     String
+  price     Int
+  qty       Int
+}
+
+model Coupon {
+  id        String    @id @default(cuid())
+  code      String    @unique
+  type      String // PERCENT | FIXED
+  value     Int
+  minTotal  Int       @default(0)
+  active    Boolean   @default(true)
+  expiresAt DateTime?
+  uses      Int       @default(0)
+  createdAt DateTime  @default(now())
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  phone     String?
+  body      String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model Setting {
+  key   String @id
+  value String
+}

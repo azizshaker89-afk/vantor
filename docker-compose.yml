@@ -1,0 +1,15 @@
+services:
+  vantor:
+    build: .
+    ports: ["3000:3000"]
+    environment:
+      AUTH_SECRET: ${AUTH_SECRET:?set AUTH_SECRET in .env}
+      SITE_URL: ${SITE_URL:-http://localhost:3000}
+      INSECURE_COOKIES: ${INSECURE_COOKIES:-1} # set to 0 behind HTTPS
+    volumes:
+      - vantor-data:/data
+      - vantor-uploads:/app/uploads
+    restart: unless-stopped
+volumes:
+  vantor-data:
+  vantor-uploads:
