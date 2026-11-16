@@ -1,9 +1,9 @@
-import { PrismaClient } from "@prisma/client";
+import { createPrisma } from "../src/lib/prisma";
 import bcrypt from "bcryptjs";
 import { brands, categories, products } from "./catalog";
 import { GOVERNORATES, shippingFor } from "../src/lib/egypt";
 
-const db = new PrismaClient();
+const db = createPrisma();
 
 // Deterministic PRNG so the demo data is identical on every seed.
 let s = 20261115;

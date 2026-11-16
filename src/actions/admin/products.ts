@@ -2,6 +2,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import sharp from "sharp";
+import { put } from "@vercel/blob";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
@@ -75,13 +76,21 @@ export async function uploadProductImage(form: FormData): Promise<{ ok: true; pa
   } catch {
     return { ok: false, error: "الملف ده مش صورة صالحة" };
   }
-  const dir = path.join(process.cwd(), "uploads", "products");
-  await fs.mkdir(dir, { recursive: true });
   const base = `p-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
   const img = sharp(buf).rotate();
-  await img.clone().resize(900, 900, { fit: "cover", position: "attention" }).webp({ quality: 80 }).toFile(path.join(dir, `${base}.webp`));
   const big = await img.clone().resize(1530, 1530, { fit: "cover", position: "attention" }).toBuffer();
-  await sharp(big).extract({ left: 315, top: 315, width: 900, height: 900 }).webp({ quality: 80 }).toFile(path.join(dir, `${base}-detail.webp`));
-  await img.clone().resize(900, 900, { fit: "contain", background: "#000" }).webp({ quality: 80 }).toFile(path.join(dir, `${base}-full.webp`));
+  const variants: [string, Buffer][] = [
+    ["", await img.clone().resize(900, 900, { fit: "cover", position: "attention" }).webp({ quality: 80 }).toBuffer()],
+    ["-detail", await sharp(big).extract({ left: 315, top: 315, width: 900, height: 900 }).webp({ quality: 80 }).toBuffer()],
+    ["-full", await img.clone().resize(900, 900, { fit: "contain", background: "#000" }).webp({ quality: 80 }).toBuffer()],
+  ];
+  // Serverless hosts (Vercel) have no writable disk: store in Vercel Blob when its token is configured.
+  if (process.env.BLOB_READ_WRITE_TOKEN) {
+    const urls = await Promise.all(variants.map(([s, b]) => put(`products/${base}${s}.webp`, b, { access: "public", contentType: "image/webp", addRandomSuffix: false }).then((r) => r.url)));
+    return { ok: true, paths: urls };
+  }
+  const dir = path.join(process.cwd(), "uploads", "products");
+  await fs.mkdir(dir, { recursive: true });
+  await Promise.all(variants.map(([s, b]) => fs.writeFile(path.join(dir, `${base}${s}.webp`), b)));
   return { ok: true, paths: ["", "-detail", "-full"].map((s) => `/uploads/products/${base}${s}.webp`) };
 }

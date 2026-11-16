@@ -14,9 +14,15 @@ const nextConfig: NextConfig = {
   output: process.env.STANDALONE === "1" ? "standalone" : undefined,
   outputFileTracingRoot: path.join(__dirname),
   poweredByHeader: false,
+  // Native/driver packages for Turso must stay outside the webpack bundle.
+  serverExternalPackages: ["@prisma/adapter-libsql", "@libsql/client", "libsql"],
   // Product photos are uploaded through a server action.
   experimental: { serverActions: { bodySizeLimit: "10mb" } },
-  images: { formats: ["image/avif", "image/webp"] },
+  images: {
+    formats: ["image/avif", "image/webp"],
+    // Admin uploads on Vercel live in Vercel Blob.
+    remotePatterns: [{ protocol: "https", hostname: "*.public.blob.vercel-storage.com" }],
+  },
   async headers() {
     return [
       { source: "/:path*", headers: securityHeaders },
