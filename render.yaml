@@ -1,0 +1,16 @@
+# Render Blueprint: free web service built from the Dockerfile.
+# The free plan has no persistent disk, so every restart re-seeds fresh demo data.
+services:
+  - type: web
+    name: vantor
+    runtime: docker
+    plan: free
+    branch: main
+    healthCheckPath: /ar
+    envVars:
+      - key: AUTH_SECRET
+        generateValue: true
+      - key: SITE_URL
+        value: https://vantor.onrender.com # change if Render assigns a different URL
+      - key: INSECURE_COOKIES
+        value: "0"
